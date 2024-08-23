@@ -1,4 +1,5 @@
 import { getCharacter } from "@/lib";
+import Pieces from "./Pieces";
 
 const Board = () => {
   //initialize ranks and files
@@ -12,7 +13,7 @@ const Board = () => {
   //the function that gives the style for each tile
   const getClassName = (i, j) => {
     let class_name =
-      "relative sm:min-w-[60px] min-w-[40px] sm:min-h-[60px] min-h-[40px]  flex items-center justify-center";
+      "relative sm:w-[60px] w-[40px] sm:h-[60px] h-[40px] flex items-center justify-center";
     class_name += (i + j) % 2 === 0 ? " bg-[#B48764]" : " bg-[#F0D8B6]";
     // if (appState.candidateMoves?.find((m) => m[0] === i && m[1] === j)) {
     //   if (position[i][j]) class_name += " attacking";
@@ -60,6 +61,8 @@ const Board = () => {
         ))}
       </div>
       {/* ------- */}
+
+      <Pieces />
     </div>
   );
 };
