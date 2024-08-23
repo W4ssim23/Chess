@@ -2,10 +2,25 @@ import { bb, bk, bn, bp, bq, br, wb, wk, wn, wp, wq, wr } from "@/assets";
 import Image from "next/image";
 
 const Piece = ({ piece, rank, file }) => {
+  const onDragStart = (e) => {
+    if (!piece) return;
+    e.dataTransfer.setData("text/plain", `${piece},${rank},${file}`);
+    e.dataTransfer.effectAllowed = "move";
+    setTimeout(() => {
+      e.target.style.display = "none";
+    }, 0);
+  };
+
+  const onDragEnd = (e) => {
+    e.target.style.display = "block";
+  };
+
   return (
     <div
       className="flex items-center justify-center sm:w-[60px] w-[40px] sm:h-[60px] h-[40px]"
-      draggable={true}
+      draggable={!!piece}
+      onDragStart={onDragStart}
+      onDragEnd={onDragEnd}
     >
       {piece && (
         <Image
