@@ -1,11 +1,11 @@
 "use client";
 
-import { initialPostions } from "@/lib";
 import Piece from "./Piece";
-import { useState, useRef } from "react";
+import { useRef } from "react";
+import useGameContext from "@/app/context";
 
 export default function Pieces() {
-  const [positions, setPositions] = useState(initialPostions());
+  const { positions, setPositions, turn, setTurn } = useGameContext();
 
   const boardRef = useRef();
 
@@ -22,11 +22,14 @@ export default function Pieces() {
     e.preventDefault();
     const { x, y } = calcCords(e);
     const [piece, rank, file] = e.dataTransfer.getData("text").split(",");
-    if (!piece) return; // to prevent dropping empty tiles errors
+    if (!piece || !rank || !file) return; // to prevent dropping empty tiles errors
     const newPositions = JSON.parse(JSON.stringify(positions));
     newPositions[rank][file] = "";
     newPositions[x][y] = piece;
     setPositions(newPositions);
+
+    // Switch turn
+    setTurn(turn === "w" ? "b" : "w");
   };
 
   return (

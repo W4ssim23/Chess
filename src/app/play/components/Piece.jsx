@@ -1,9 +1,20 @@
 import { bb, bk, bn, bp, bq, br, wb, wk, wn, wp, wq, wr } from "@/assets";
 import Image from "next/image";
+import useGameContext from "@/app/context";
 
 const Piece = ({ piece, rank, file }) => {
+  const { turn } = useGameContext();
+
   const onDragStart = (e) => {
     if (!piece) return;
+
+    // Check if it's the right turn
+    const isWhitePiece = piece.startsWith("w");
+    const isCorrectTurn =
+      (turn === "w" && isWhitePiece) || (turn === "b" && !isWhitePiece);
+
+    if (!isCorrectTurn) return;
+
     e.dataTransfer.setData("text/plain", `${piece},${rank},${file}`);
     e.dataTransfer.effectAllowed = "move";
     setTimeout(() => {
