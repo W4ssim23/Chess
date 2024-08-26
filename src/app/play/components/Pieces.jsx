@@ -1,12 +1,13 @@
 "use client";
 
 import Piece from "./Piece";
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import useGameContext from "@/app/context";
 import arbiter from "@/arbiter/arbitre";
 
 export default function Pieces() {
   const { positions, setPositions, turn, setTurn } = useGameContext();
+  const [prevPositions] = useState(positions);
 
   const boardRef = useRef();
 
@@ -29,6 +30,7 @@ export default function Pieces() {
     const validMoves = arbiter(
       piece,
       positions,
+      prevPositions,
       parseInt(rank),
       parseInt(file),
       isWhite
@@ -37,6 +39,14 @@ export default function Pieces() {
     // Check if the drop position is valid
     if (validMoves.some(([validX, validY]) => validX === x && validY === y)) {
       const newPositions = JSON.parse(JSON.stringify(positions));
+
+      // En Passant capture: Check if the move is en passant
+      if (piece[1] === "p" && file !== y && !positions[x][y]) {
+        // Capture the opponent's pawn
+        const captureRank = isWhite ? x + 1 : x - 1;
+        newPositions[captureRank][y] = "";
+      }
+
       newPositions[rank][file] = "";
       newPositions[x][y] = piece;
       setPositions(newPositions);

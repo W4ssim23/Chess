@@ -1,7 +1,7 @@
 // So pieces dont move out of the board
 const isValidPosition = (x, y) => x >= 0 && x < 8 && y >= 0 && y < 8;
 
-export const getPawnMoves = (positions, x, y, isWhite) => {
+export const getPawnMoves = (positions, prevPositions, x, y, isWhite) => {
   const direction = isWhite ? -1 : 1;
   const moves = [];
 
@@ -33,6 +33,29 @@ export const getPawnMoves = (positions, x, y, isWhite) => {
   if ((isWhite && x === 6) || (!isWhite && x === 1)) {
     if (!positions[x + direction][y] && !positions[x + 2 * direction][y]) {
       moves.push([x + 2 * direction, y]);
+    }
+  }
+
+  // en passant
+  // Checks if the last move was a double step forward by the opponent
+  const enemyPawn = isWhite ? "bp" : "wp";
+  const adjacentFiles = [y - 1, y + 1];
+
+  if (prevPositions) {
+    if ((isWhite && x === 3) || (!isWhite && x === 4)) {
+      adjacentFiles.forEach((f) => {
+        if (isValidPosition(x, f) && positions[x][f] === enemyPawn) {
+          // Check if the enemy pawn just moved two squares forward
+          if (
+            isValidPosition(x + 2 * direction, f) &&
+            prevPositions[x + 2 * direction][f] === enemyPawn &&
+            !prevPositions[x][f] &&
+            !positions[x + direction][f]
+          ) {
+            moves.push([x + direction, f]);
+          }
+        }
+      });
     }
   }
 
@@ -170,14 +193,21 @@ const getKingMoves = (positions, x, y, isWhite) => {
 
 //left  checks , checkmate , steelmates , castling , promotion , inpassent
 
-export default function arbiter(piece, positions, x, y, isWhite) {
+export default function arbiter(
+  piece,
+  positions,
+  prevPositions,
+  x,
+  y,
+  isWhite
+) {
   if (!piece) return [];
 
   const pieceType = piece[1];
 
   switch (pieceType) {
     case "p":
-      return getPawnMoves(positions, x, y, isWhite);
+      return getPawnMoves(positions, prevPositions, x, y, isWhite);
     case "r":
       return getRookMoves(positions, x, y, isWhite);
     case "n":
