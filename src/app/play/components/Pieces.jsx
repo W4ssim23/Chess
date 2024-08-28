@@ -1,13 +1,23 @@
 "use client";
 
 import Piece from "./Piece";
-import { useRef, useState } from "react";
+import { useRef } from "react";
 import useGameContext from "@/app/context";
-import arbiter from "@/arbiter/arbitre";
+import { checkGameState } from "@/arbiter/arbitre";
 
 export default function Pieces() {
-  const { positions, setPositions, turn, setTurn } = useGameContext();
-  const [prevPositions] = useState(positions);
+  const {
+    positions,
+    setPositions,
+    turn,
+    setTurn,
+    gameStatus,
+    setGameStatus,
+    setPrevPositions,
+    validMovesS,
+    setValidMovesS,
+    castling,
+  } = useGameContext();
 
   const boardRef = useRef();
 
@@ -27,17 +37,11 @@ export default function Pieces() {
     if (!piece || !rank || !file) return;
 
     const isWhite = piece[0] === "w";
-    const validMoves = arbiter(
-      piece,
-      positions,
-      prevPositions,
-      parseInt(rank),
-      parseInt(file),
-      isWhite
-    );
 
     // Check if the drop position is valid
-    if (validMoves.some(([validX, validY]) => validX === x && validY === y)) {
+    if (validMovesS.some(([validX, validY]) => validX === x && validY === y)) {
+      setPrevPositions(JSON.parse(JSON.stringify(positions)));
+
       const newPositions = JSON.parse(JSON.stringify(positions));
 
       // En Passant capture: Check if the move is en passant
@@ -49,7 +53,58 @@ export default function Pieces() {
 
       newPositions[rank][file] = "";
       newPositions[x][y] = piece;
+
+      // Check for promotion
+      if (piece[1] === "p" && (x === 0 || x === 7)) {
+        let promotionPiece;
+        do {
+          promotionPiece = prompt("Promote to (q, r, b, n):", "q");
+        } while (
+          promotionPiece &&
+          !["q", "r", "b", "n"].includes(promotionPiece)
+        );
+
+        if (promotionPiece) {
+          newPositions[x][y] = isWhite
+            ? `w${promotionPiece}`
+            : `b${promotionPiece}`;
+        }
+      }
+
+      // check for castling move
+      if (piece[1] === "k" && Math.abs(y - file) === 2) {
+        const rookFile = y === 6 ? 7 : 0;
+        const rook = isWhite ? "wr" : "br";
+        newPositions[x][y - 1] = newPositions[x][rookFile];
+        newPositions[x][rookFile] = "";
+      }
+
+      // Update castling rights
+      if (piece === "wk") {
+        castling.w.king = false;
+        castling.w.queen = false;
+      } else if (piece === "bk") {
+        castling.b.king = false;
+        castling.b.queen = false;
+      } else if (piece === "wr" && file === 0) {
+        castling.w.queen = false;
+      } else if (piece === "wr" && file === 7) {
+        castling.w.king = false;
+      } else if (piece === "br" && file === 0) {
+        castling.b.queen = false;
+      } else if (piece === "br" && file === 7) {
+        castling.b.king = false;
+      }
+
       setPositions(newPositions);
+
+      setValidMovesS([]);
+
+      //update game status
+      const newStatus = checkGameState(newPositions, !isWhite);
+      if (newStatus !== gameStatus) {
+        setGameStatus(newStatus);
+      }
 
       // Switch turn
       setTurn(turn === "w" ? "b" : "w");

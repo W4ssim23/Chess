@@ -1,6 +1,92 @@
 // So pieces dont move out of the board
 const isValidPosition = (x, y) => x >= 0 && x < 8 && y >= 0 && y < 8;
 
+const findKing = (positions, king) => {
+  for (let i = 0; i < 8; i++) {
+    for (let j = 0; j < 8; j++) {
+      if (positions[i][j] === king) {
+        return { x: i, y: j };
+      }
+    }
+  }
+  return null;
+};
+
+const isKingInCheck = (
+  positions,
+  isWhite,
+  castling = { w: { king: true, queen: true }, b: { king: true, queen: true } }
+) => {
+  const kingPosition = findKing(positions, isWhite ? "wk" : "bk");
+  for (let i = 0; i < 8; i++) {
+    for (let j = 0; j < 8; j++) {
+      const piece = positions[i][j];
+      if (piece && piece[0] !== (isWhite ? "w" : "b")) {
+        const moves = arbiter(
+          piece,
+          positions,
+          null,
+          i,
+          j,
+          !isWhite,
+          castling,
+          true
+        );
+        if (
+          moves.some(([x, y]) => x === kingPosition.x && y === kingPosition.y)
+        ) {
+          return true;
+        }
+      }
+    }
+  }
+  return false;
+};
+
+const isCheckmate = (positions, isWhite) => {
+  if (!isKingInCheck(positions, isWhite)) return false;
+
+  for (let i = 0; i < 8; i++) {
+    for (let j = 0; j < 8; j++) {
+      const piece = positions[i][j];
+      if (piece && piece[0] === (isWhite ? "w" : "b")) {
+        const moves = arbiter(piece, positions, null, i, j, isWhite);
+        for (const [x, y] of moves) {
+          const newPositions = JSON.parse(JSON.stringify(positions));
+          newPositions[i][j] = "";
+          newPositions[x][y] = piece;
+          if (!isKingInCheck(newPositions, isWhite)) {
+            return false;
+          }
+        }
+      }
+    }
+  }
+  return true;
+};
+
+const isStalemate = (positions, isWhite) => {
+  if (isKingInCheck(positions, isWhite)) return false;
+
+  for (let i = 0; i < 8; i++) {
+    for (let j = 0; j < 8; j++) {
+      const piece = positions[i][j];
+      if (piece && piece[0] === (isWhite ? "w" : "b")) {
+        const moves = arbiter(piece, positions, null, i, j, isWhite);
+        for (const [x, y] of moves) {
+          const newPositions = JSON.parse(JSON.stringify(positions));
+          newPositions[i][j] = "";
+          newPositions[x][y] = piece;
+          if (!isKingInCheck(newPositions, isWhite)) {
+            return false;
+          }
+        }
+      }
+    }
+  }
+  return true;
+};
+
 export const getPawnMoves = (positions, prevPositions, x, y, isWhite) => {
   const direction = isWhite ? -1 : 1;
   const moves = [];
@@ -163,7 +249,7 @@ const getQueenMoves = (positions, x, y, isWhite) => {
   ];
 };
 
-const getKingMoves = (positions, x, y, isWhite) => {
+const getKingMoves = (positions, x, y, isWhite, castling) => {
   const moves = [];
 
   const potentialMoves = [
@@ -188,10 +274,52 @@ const getKingMoves = (positions, x, y, isWhite) => {
     }
   }
 
+  // // Castling
+  const king = isWhite ? "w" : "b";
+  const backRank = isWhite ? 7 : 0;
+
+  // King-side castling
+  if (
+    castling[king].king &&
+    !positions[backRank][5] &&
+    !positions[backRank][6]
+  ) {
+    if (
+      !isKingInCheck(positions, isWhite) &&
+      !isKingInCheckAfterMove(positions, [x, y], [backRank, 5], isWhite)
+    ) {
+      moves.push([backRank, 6]);
+    }
+  }
+
+  // Queen-side castling
+  if (
+    castling[king].queen &&
+    !positions[backRank][1] &&
+    !positions[backRank][2] &&
+    !positions[backRank][3]
+  ) {
+    if (
+      !isKingInCheck(positions, isWhite) &&
+      !isKingInCheckAfterMove(positions, [x, y], [backRank, 2], isWhite)
+    ) {
+      moves.push([backRank, 2]);
+    }
+  }
+
   return moves;
 };
 
-//left  checks , checkmate , steelmates , castling , promotion , inpassent
+const isKingInCheckAfterMove = (positions, from, to, isWhite) => {
+  const [fx, fy] = from;
+  const [tx, ty] = to;
+
+  const tempPositions = JSON.parse(JSON.stringify(positions));
+  tempPositions[tx][ty] = tempPositions[fx][fy];
+  tempPositions[fx][fy] = "";
+
+  return isKingInCheck(tempPositions, isWhite);
+};
 
 export default function arbiter(
   piece,
@@ -199,26 +327,59 @@ export default function arbiter(
   prevPositions,
   x,
   y,
-  isWhite
+  isWhite,
+  castling = { w: { king: true, queen: true }, b: { king: true, queen: true } },
+  isCheckingKing = false
 ) {
   if (!piece) return [];
 
   const pieceType = piece[1];
+  let moves = [];
 
   switch (pieceType) {
     case "p":
-      return getPawnMoves(positions, prevPositions, x, y, isWhite);
+      moves = getPawnMoves(positions, prevPositions, x, y, isWhite);
+      break;
     case "r":
-      return getRookMoves(positions, x, y, isWhite);
+      moves = getRookMoves(positions, x, y, isWhite);
+      break;
     case "n":
-      return getKnightMoves(positions, x, y, isWhite);
+      moves = getKnightMoves(positions, x, y, isWhite);
+      break;
     case "b":
-      return getBishopMoves(positions, x, y, isWhite);
+      moves = getBishopMoves(positions, x, y, isWhite);
+      break;
     case "q":
-      return getQueenMoves(positions, x, y, isWhite);
+      moves = getQueenMoves(positions, x, y, isWhite);
+      break;
     case "k":
-      return getKingMoves(positions, x, y, isWhite);
+      moves = getKingMoves(positions, x, y, isWhite, castling);
+      break;
     default:
       return [];
+  }
+
+  // Filter out moves that would result in the king being in check
+  if (!isCheckingKing) {
+    moves = moves.filter(([nx, ny]) => {
+      const newPositions = JSON.parse(JSON.stringify(positions));
+      newPositions[x][y] = "";
+      newPositions[nx][ny] = piece;
+      return !isKingInCheck(newPositions, isWhite);
+    });
+  }
+
+  return moves;
+}
+
+// Use this function to determine the state of the game after each move
+// remains to add repetition and 50 moves rule
+export function checkGameState(positions, isWhite) {
+  if (isCheckmate(positions, isWhite)) {
+    return "checkmate";
+  } else if (isStalemate(positions, isWhite)) {
+    return "stalemate";
+  } else {
+    return "ongoing";
   }
 }

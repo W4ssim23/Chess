@@ -5,7 +5,7 @@ import { AppProvider } from "./Providers";
 const poppins = Poppins({ subsets: ["latin"], weight: ["400", "700"] });
 
 export const metadata = {
-  title: "Zt Chess",
+  title: "Chess Dz",
   description: "an online chess game",
 };
 

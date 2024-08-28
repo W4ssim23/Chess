@@ -1,9 +1,11 @@
 import { bb, bk, bn, bp, bq, br, wb, wk, wn, wp, wq, wr } from "@/assets";
 import Image from "next/image";
 import useGameContext from "@/app/context";
+import arbiter from "@/arbiter/arbitre";
 
 const Piece = ({ piece, rank, file }) => {
-  const { turn } = useGameContext();
+  const { turn, setValidMovesS, positions, prevPositions, castling } =
+    useGameContext();
 
   const onDragStart = (e) => {
     if (!piece) return;
@@ -20,10 +22,22 @@ const Piece = ({ piece, rank, file }) => {
     setTimeout(() => {
       e.target.style.display = "none";
     }, 0);
+
+    const moves = arbiter(
+      piece,
+      positions,
+      prevPositions,
+      parseInt(rank),
+      parseInt(file),
+      isWhitePiece,
+      castling
+    );
+    setValidMovesS(moves);
   };
 
   const onDragEnd = (e) => {
     e.target.style.display = "block";
+    setValidMovesS([]);
   };
 
   return (

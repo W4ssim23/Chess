@@ -5,13 +5,28 @@ const gameContext = createContext();
 
 export const GameProvider = ({ children }) => {
   const [positions, setPositions] = useState(initialPostions());
+  const [prevPositions, setPrevPositions] = useState(initialPostions());
   const [turn, setTurn] = useState("w");
+  const [gameStatus, setGameStatus] = useState("ongoing");
+  const [validMovesS, setValidMovesS] = useState([]);
+  const [castling, setCastling] = useState({
+    w: { king: true, queen: true },
+    b: { king: true, queen: true },
+  });
 
   const contextValue = {
     positions,
     setPositions,
     turn,
     setTurn,
+    validMovesS,
+    setValidMovesS,
+    gameStatus,
+    setGameStatus,
+    prevPositions,
+    setPrevPositions,
+    castling,
+    setCastling,
   };
 
   return (
